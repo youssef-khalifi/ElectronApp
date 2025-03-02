@@ -3,6 +3,7 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Product } from '../../models/Product';
 import { ConnectivityService } from '../../services/connectivity.service';
 import { ElectronService } from '../../services/electron.service';
+import { ProductRequest } from '../../models/ProductRequest';
 
 @Component({
   selector: 'app-products',
@@ -12,7 +13,9 @@ import { ElectronService } from '../../services/electron.service';
 export class ProductsComponent  implements OnInit {
 
   productForm!: FormGroup;
-  product! : Product;
+  products: any[] = [];
+  product! : ProductRequest;
+  product2! : Product;
 
   constructor(private connectivityService : ConnectivityService, 
     private electronService : ElectronService
@@ -20,18 +23,25 @@ export class ProductsComponent  implements OnInit {
 
   ngOnInit(): void {
 
+    this.loadProducts();
+    
     this.productForm = new FormGroup({
       name: new FormControl('', [Validators.required]),
       description: new FormControl('', [Validators.required,]),
       price: new FormControl('', [Validators.required,]),
       check: new FormControl(false)
     });
+
+  }
+
+  async loadProducts() {
+    this.products = await this.electronService.getAllProducts();
+    console.log('Loaded products:', this.products);
   }
 
   onSubmit()
   {
     this.product = {
-      id : 0,
       name : this.productForm.value.name,
       description : this.productForm.value.description,
       price : this.productForm.value.price
@@ -42,9 +52,17 @@ export class ProductsComponent  implements OnInit {
      // console.log(this.product)
      console.log("send it to server ")
      }else{
-     this.electronService.sendProductToMain(this.product)
+     this.electronService.addProduct(this.product)
      }
      
      
+  }
+
+  edit(product : Product){
+    alert(product.name)
+  }
+
+  delete(product : Product){
+    alert(product.name)
   }
 }
