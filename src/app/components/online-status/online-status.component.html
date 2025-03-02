@@ -1,0 +1,5 @@
+<div class="network-status" [ngClass]="isOnline ? 'online' : 'offline'">
+    <span *ngIf="isOnline">🟢 Online</span>
+    <span *ngIf="!isOnline">🔴 Offline</span>
+    <button (click)="refreshStatus()" class="refresh-btn">↻</button>
+  </div>
