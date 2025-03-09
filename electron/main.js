@@ -5,7 +5,7 @@ const sqlite3 = require('sqlite3').verbose(); // or 'better-sqlite3'
 
 // Database
 // Create and open the SQLite database
-const db = new sqlite3.Database(path.join(__dirname, 'database.db'), (err) => {
+const db = new sqlite3.Database(path.join(__dirname, 'data.db'), (err) => {
   if (err) {
     console.error('Error opening SQLite database:', err);
   } else {
@@ -13,13 +13,20 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.db'), (err) => {
   }
 });
 
+//create product table
 db.run(`
   CREATE TABLE IF NOT EXISTS products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    description TEXT,
-    price REAL NOT NULL
-  );
+   id INTEGER PRIMARY KEY AUTOINCREMENT,
+   name TEXT NOT NULL,
+   description TEXT,
+   price REAL NOT NULL,
+   created_at TEXT NOT NULL DEFAULT (datetime('now')),
+   updated_at TEXT,
+   is_deleted INTEGER NOT NULL DEFAULT 0,
+   is_synced INTEGER NOT NULL DEFAULT 0,
+   last_synced_at TEXT,
+   sync_id TEXT NOT NULL DEFAULT (lower(hex(randomblob(16))))
+   );
 `, (err) => {
   if (err) {
     console.error('Error creating table:', err);
@@ -28,6 +35,7 @@ db.run(`
   }
 });
 
+//get all products
 ipcMain.handle('get-all-products', async () => {
   return new Promise((resolve, reject) => {
     db.all('SELECT * FROM products', [], (err, rows) => {
@@ -42,8 +50,8 @@ ipcMain.handle('get-all-products', async () => {
   });
 });
 
-
 // Expose the database functions to the renderer process (Angular)
+//get product by Id
 ipcMain.handle('get-product', async (event, productId) => {
   return new Promise((resolve, reject) => {
     db.get('SELECT * FROM products WHERE id = ?', [productId], (err, row) => {
@@ -56,6 +64,7 @@ ipcMain.handle('get-product', async (event, productId) => {
   });
 });
 
+//add product
 ipcMain.handle('addPro', async (event, product) => {
   return new Promise((resolve, reject) => {
     const { name,description, price } = product;

@@ -4,6 +4,7 @@ import { Product } from '../../models/Product';
 import { ConnectivityService } from '../../services/connectivity.service';
 import { ElectronService } from '../../services/electron.service';
 import { ProductRequest } from '../../models/ProductRequest';
+import {ProductService} from "../../services/product.service";
 
 @Component({
   selector: 'app-products',
@@ -17,14 +18,14 @@ export class ProductsComponent  implements OnInit {
   product! : ProductRequest;
   product2! : Product;
 
-  constructor(private connectivityService : ConnectivityService, 
-    private electronService : ElectronService
+  constructor(private connectivityService : ConnectivityService,
+    private electronService : ElectronService, private productService : ProductService
   ){}
 
   ngOnInit(): void {
 
-    this.loadProducts();
-    
+    this.getProducts();
+
     this.productForm = new FormGroup({
       name: new FormControl('', [Validators.required]),
       description: new FormControl('', [Validators.required,]),
@@ -34,10 +35,6 @@ export class ProductsComponent  implements OnInit {
 
   }
 
-  async loadProducts() {
-    this.products = await this.electronService.getAllProducts();
-    console.log('Loaded products:', this.products);
-  }
 
   onSubmit()
   {
@@ -46,16 +43,18 @@ export class ProductsComponent  implements OnInit {
       description : this.productForm.value.description,
       price : this.productForm.value.price
      }
-     
+
      if(this.connectivityService.getCurrentOnlineStatus())
      {
      // console.log(this.product)
      console.log("send it to server ")
      }else{
-     this.electronService.addProduct(this.product)
+     this.electronService.addProduct(this.product).then(()=>{
+       this.loadProducts()
+     })
      }
-     
-     
+
+
   }
 
   edit(product : Product){
@@ -65,4 +64,30 @@ export class ProductsComponent  implements OnInit {
   delete(product : Product){
     alert(product.name)
   }
+
+  public getProducts()
+  {
+    if (this.connectivityService.getCurrentOnlineStatus())
+    {
+      this.productService.getAllProducts().subscribe({
+
+        next : (data : Product[]) => {
+          this.products = data;
+        },
+        error : (error) => {
+          alert(error)
+        }
+      })
+    }else
+    {
+      this.loadProducts();
+    }
+
+  }
+
+  public async loadProducts() {
+    this.products = await this.electronService.getAllProducts();
+    console.log('Loaded products:', this.products);
+  }
+
 }

@@ -9,6 +9,8 @@ import { OnlineStatusComponent } from './components/online-status/online-status.
 import { HomeComponent } from './components/home/home.component';
 import { NavbarComponent } from './components/navbar/navbar.component';
 import { ReactiveFormsModule } from '@angular/forms';
+import {HttpClientModule} from "@angular/common/http";
+import { ToothComponent } from './components/tooth/tooth.component';
 
 @NgModule({
   declarations: [
@@ -16,12 +18,14 @@ import { ReactiveFormsModule } from '@angular/forms';
     ProductsComponent,
     OnlineStatusComponent,
     HomeComponent,
-    NavbarComponent
+    NavbarComponent,
+    ToothComponent
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    HttpClientModule
   ],
   providers: [
     provideClientHydration(),
