@@ -17,5 +17,26 @@
         <button type="submit" class="btn btn-primary">Submit</button>
     </form>
   
+
+    <table class="table" >
+      <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">Price</th>
+        <th scope="col">Description</th>
+        <th scope="col">Edit</th>
+        <th scope="col">Delete</th>
+      </tr>
+      </thead>
+      <tbody *ngFor="let p of products">
+      <tr>
+        <td>{{ p.name }}</td>
+        <td>{{p.price}}</td>
+        <td>{{p.description}}</td>
+        <td><button type="button"  (click)="edit(p)" class="btn btn-primary">Edit</button></td>
+        <td><button type="button" (click)="delete(p)" class="btn btn-danger">Delete</button></td>
+      </tr>
+      </tbody>
+    </table>
     </div>
   </div>

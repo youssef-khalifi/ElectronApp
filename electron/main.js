@@ -1,6 +1,84 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow , ipcMain} = require('electron')
 const path = require('node:path')
+const sqlite3 = require('sqlite3').verbose(); // or 'better-sqlite3'
+
+// Database
+// Create and open the SQLite database
+const db = new sqlite3.Database(path.join(__dirname, 'data.db'), (err) => {
+  if (err) {
+    console.error('Error opening SQLite database:', err);
+  } else {
+    console.log('SQLite database opened successfully');
+  }
+});
+
+//create product table
+db.run(`
+  CREATE TABLE IF NOT EXISTS products (
+   id INTEGER PRIMARY KEY AUTOINCREMENT,
+   name TEXT NOT NULL,
+   description TEXT,
+   price REAL NOT NULL,
+   created_at TEXT NOT NULL DEFAULT (datetime('now')),
+   updated_at TEXT,
+   is_deleted INTEGER NOT NULL DEFAULT 0,
+   is_synced INTEGER NOT NULL DEFAULT 0,
+   last_synced_at TEXT,
+   sync_id TEXT NOT NULL DEFAULT (lower(hex(randomblob(16))))
+   );
+`, (err) => {
+  if (err) {
+    console.error('Error creating table:', err);
+  } else {
+    console.log('Products table ensured.');
+  }
+});
+
+//get all products
+ipcMain.handle('get-all-products', async () => {
+  return new Promise((resolve, reject) => {
+    db.all('SELECT * FROM products', [], (err, rows) => {
+      if (err) {
+        console.error('Error fetching all products:', err);
+        reject('Error fetching all products');
+      } else {
+        console.log('Fetched products:', rows);
+        resolve(rows); // Return all products as an array
+      }
+    });
+  });
+});
+
+// Expose the database functions to the renderer process (Angular)
+//get product by Id
+ipcMain.handle('get-product', async (event, productId) => {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT * FROM products WHERE id = ?', [productId], (err, row) => {
+      if (err) {
+        reject('Error fetching product data');
+      } else {
+        resolve(row);
+      }
+    });
+  });
+});
+
+//add product
+ipcMain.handle('addPro', async (event, product) => {
+  return new Promise((resolve, reject) => {
+    const { name,description, price } = product;
+    db.run('INSERT INTO products (name,description, price) VALUES (?,?, ?)', [name,description, price], function (err) {
+      if (err) {
+        reject('Error adding product');
+      } else {
+        resolve({ id: this.lastID, name,description, price });
+      }
+    });
+  });
+});
+
+
 
 function createWindow () {
   // Create the browser window.
