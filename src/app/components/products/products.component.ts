@@ -46,11 +46,20 @@ export class ProductsComponent  implements OnInit {
 
      if(this.connectivityService.getCurrentOnlineStatus())
      {
-     // console.log(this.product)
-     console.log("send it to server ")
+    this.productService.addProduct(this.product).subscribe({
+
+    next : (data) =>{
+      console.log(data)
+      this.productForm.reset()
+      this.getProducts()
+    },
+    error : (error) =>{
+      alert(error)
+    }
+    })
      }else{
      this.electronService.addProduct(this.product).then(()=>{
-       this.loadProducts()
+       this.loadProducts().then()
      })
      }
 
@@ -62,7 +71,26 @@ export class ProductsComponent  implements OnInit {
   }
 
   delete(product : Product){
-    alert(product.name)
+
+    if(this.connectivityService.getCurrentOnlineStatus())
+    {
+      this.productService.deleteProduct(product.id).subscribe(
+        response => {
+          console.log('Product deleted successfully', response);
+          this.getProducts()
+
+        },
+        error => {
+          console.error('Error deleting product', error);
+        }
+      );
+
+    }else {
+      this.electronService.deleteProduct(product.id).then(p =>{
+        this.loadProducts().then()
+      })
+    }
+
   }
 
   public getProducts()
@@ -87,6 +115,7 @@ export class ProductsComponent  implements OnInit {
 
   public async loadProducts() {
     this.products = await this.electronService.getAllProducts();
+
     console.log('Loaded products:', this.products);
   }
 

@@ -35,7 +35,6 @@ db.run(`
   }
 });
 
-//get all products
 ipcMain.handle('get-all-products', async () => {
   return new Promise((resolve, reject) => {
     db.all('SELECT * FROM products', [], (err, rows) => {
@@ -43,9 +42,91 @@ ipcMain.handle('get-all-products', async () => {
         console.error('Error fetching all products:', err);
         reject('Error fetching all products');
       } else {
+        // Transform boolean fields (convert 0 → false, 1 → true)
+        const transformedRows = rows.map(row => ({
+          ...row,
+          is_synced: row.is_synced === 1, // Ensure boolean conversion
+          is_deleted: row.is_deleted === 1, // Ensure boolean conversion
+        }));
+
+        console.log('Fetched and transformed products:', transformedRows);
+        resolve(transformedRows);
+      }
+    });
+  });
+});
+
+
+ipcMain.handle('getUnSyncProducts', async () => {
+  return new Promise((resolve, reject) => {
+    db.all('SELECT * FROM products WHERE is_synced = 0', [], (err, rows) => {
+      if (err) {
+        console.error('Error fetching all unsync products:', err);
+        reject('Error fetching all products');
+      } else {
         console.log('Fetched products:', rows);
         resolve(rows); // Return all products as an array
       }
+    });
+  });
+});
+
+ipcMain.handle('markProductsAsSynced', async (event) => {
+  return new Promise((resolve, reject) => {
+    // Get current timestamp
+    const currentTimestamp = new Date().toISOString();
+
+    // Start a transaction for better performance
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
+
+      // First, select all unsynced products
+      db.all('SELECT * FROM products WHERE is_synced = 0', [], (err, products) => {
+        if (err) {
+          console.error('Error selecting unsynced products:', err);
+          db.run('ROLLBACK');
+          return reject('Error selecting unsynced products');
+        }
+
+        if (!products || products.length === 0) {
+          db.run('ROLLBACK');
+          return resolve({ success: true, updatedCount: 0, message: 'No unsynced products found' });
+        }
+
+        // Keep track of successful updates
+        let successCount = 0;
+
+        // Update each product
+        products.forEach((product) => {
+          db.run(
+            'UPDATE products SET is_synced = 1, lastSyncDate = ? WHERE sync_id = ?',
+            [currentTimestamp, product.sync_id],
+            (updateErr) => {
+              if (updateErr) {
+                console.error(`Error updating product ${product.sync_id}:`, updateErr);
+              } else {
+                successCount++;
+              }
+            }
+          );
+        });
+
+        // Commit the transaction
+        db.run('COMMIT', (commitErr) => {
+          if (commitErr) {
+            console.error('Error committing transaction:', commitErr);
+            reject('Error updating products');
+          } else {
+            console.log(`Updated ${successCount} products with lastSyncDate ${currentTimestamp}`);
+            resolve({
+              success: true,
+              updatedCount: successCount,
+              lastSyncDate: currentTimestamp,
+              products: products
+            });
+          }
+        });
+      });
     });
   });
 });
@@ -78,6 +159,21 @@ ipcMain.handle('addPro', async (event, product) => {
   });
 });
 
+ipcMain.handle('deletePro', async (event, productId) => {
+  return new Promise((resolve, reject) => {
+    db.run('DELETE FROM products WHERE id = ?', [productId], function (err) {
+      if (err) {
+        reject('Error deleting product');
+      } else {
+        if (this.changes === 0) {
+          reject('Product not found');
+        } else {
+          resolve({ message: 'Product deleted successfully', id: productId });
+        }
+      }
+    });
+  });
+});
 
 
 function createWindow () {

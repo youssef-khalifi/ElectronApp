@@ -31,7 +31,7 @@ export class Product {
     this.isDeleted = isDeleted;
     this.isSynced = isSynced;
     this.lastSyncedAt = lastSyncedAt;
-    this.syncId = syncId || this.generateSyncId();
+    this.syncId = syncId ;
   }
 
   private generateSyncId(): string {
